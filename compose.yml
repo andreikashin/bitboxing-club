@@ -9,7 +9,7 @@ services:
       - postgres
       - redis
     env_file:
-      - ./configuration/.env
+      - ./configuration/.env-template
     ports:
       - "8080:8080"
     volumes:
