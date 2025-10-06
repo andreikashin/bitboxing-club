@@ -1,0 +1,97 @@
+services:
+  # ======================
+  # NetBox
+  # ======================
+  netbox:
+    image: netboxcommunity/netbox:latest
+    container_name: netbox
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./configuration/.env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./configuration:/etc/netbox/config:ro
+      - netbox_media:/opt/netbox/netbox/media
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: netbox-postgres
+    environment:
+      POSTGRES_USER: netbox
+      POSTGRES_PASSWORD: netbox
+      POSTGRES_DB: netbox
+    volumes:
+      - netbox_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: netbox-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # ======================
+  # Observium
+  # ======================
+  observium:
+    build: ./observium
+    container_name: observium
+    depends_on:
+      - observium-mysql
+    environment:
+      OBS_DB_HOST: observium-mysql
+      OBS_DB_NAME: observium
+      OBS_DB_USER: observium
+      OBS_DB_PASS: observium
+      TZ: Europe/Tallinn
+    volumes:
+      - observium_data:/opt/observium
+    ports:
+      - "8668:8668"
+    restart: unless-stopped
+
+  observium-mysql:
+    image: mariadb:10.5
+    container_name: observium-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: observiumroot
+      MYSQL_DATABASE: observium
+      MYSQL_USER: observium
+      MYSQL_PASSWORD: observium
+    volumes:
+      - observium_mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      - NETBOX_URL=http://netbox:8080
+      - NETBOX_TOKEN=changeme
+    ports:
+      - "8000:8000"
+    depends_on:
+      - netbox
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+networks:
+  default:
+    name: monitoring_net
+    driver: bridge
+
+volumes:
+  netbox_postgres_data:
+  netbox_media:
+  observium_data:
+  observium_mysql_data:
+  netbox_db:
