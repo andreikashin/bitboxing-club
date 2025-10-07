@@ -1,31 +1,33 @@
 #!/bin/bash
 set -e
 
-# make dirs
-mkdir -p /opt/observium/logs /opt/observium/rrd
-chmod 777 /opt/observium/logs /opt/observium/rrd
+echo "🔧 Starting Observium init..."
 
-# create log file
-touch /opt/observium/logs/observium.log
+# Проверяем конфиг Apache
+a2enmod rewrite
+a2ensite observium.conf
+a2dissite 000-default.conf
 
-# configure Apache
-sed -i 's|Listen 80|Listen 8668|' /etc/apache2/ports.conf
-sed -i 's|/var/www/html|/opt/observium/html|' /etc/apache2/sites-available/000-default.conf
+# Проверяем, запущен ли Apache
+service apache2 stop || true
 
-# init database Observium
-if [ ! -f /opt/observium/.db_init ]; then
-    /opt/observium/discovery.php -u || true
-    touch /opt/observium/.db_init
+# Ждем БД (если она в другом контейнере)
+echo "⏳ Waiting for database..."
+until mysql -h "$OBS_DB_HOST" -u "$OBS_DB_USER" -p"$OBS_DB_PASS" -e "SELECT 1;" &> /dev/null; do
+  echo "  > Database not ready, waiting 5s..."
+  sleep 5
+done
+
+# Проверяем, установлена ли схема
+if ! mysql -h "$OBS_DB_HOST" -u "$OBS_DB_USER" -p"$OBS_DB_PASS" "$OBS_DB_NAME" -e "SHOW TABLES;" | grep -q 'devices'; then
+  echo "🧩 Installing Observium DB schema..."
+  cd /opt/observium
+  php includes/sql-schema/update.php
 fi
 
-a2dissite 000-default.conf || true
-a2ensite observium.conf
-a2enmod rewrite
+# Запускаем крон
+service cron start
 
-# service apache2 start
-# service cron start
-
-#echo "ServerName localhost" >> /etc/apache2/apache2.conf
-#exec apache2ctl -D FOREGROUND
-
-tail -f /opt/observium/logs/observium.log
+# Запускаем Apache
+echo "🚀 Starting Apache..."
+apachectl -D FOREGROUND

@@ -1,40 +1,49 @@
-FROM ubuntu:22.04
+# Use Ubuntu 20.04 as the base image
+FROM ubuntu:20.04
 
+# Set environment variables for non-interactive installation
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Update and install dependencies for Observium (excluding MariaDB Server)
 RUN apt-get update && apt-get install -y \
     apache2 \
-    php php-cli php-mysql php-gd php-snmp php-xml php-mbstring \
-    snmp graphviz fping mariadb-client \
-    rrdtool whois mtr-tiny ipmitool python3-mysqldb git wget cron unzip && \
-    rm -rf /var/lib/apt/lists/*
+    php \
+    php-cli \
+    php-mysql \
+    php-gd \
+    php-json \
+    php-pear \
+    snmp \
+    fping \
+    rrdtool \
+    subversion \
+    whois \
+    mtr-tiny \
+    ipmitool \
+    graphviz \
+    imagemagick \
+    wget \
+    cron \
+    mariadb-client \
+    && rm -rf /var/lib/apt/lists/*
 
-# install Observium Community Edition
+# Download and extract Observium Community Edition
 WORKDIR /opt
 RUN wget http://www.observium.org/observium-community-latest.tar.gz && \
-    tar zxvf observium-community-latest.tar.gz && \
+    tar zxf observium-community-latest.tar.gz && \
     rm observium-community-latest.tar.gz
-
-# set Main DocumentRoot Apache
-RUN cp -r /opt/observium/html/* /var/www/html/ && \
-    chown -R www-data:www-data /var/www/html/
 
 WORKDIR /opt/observium
 
-RUN mkdir -p logs rrd && chmod 777 logs rrd
-
-# config Observium
-COPY config.php /opt/observium/config.php
+# Copy your custom config file and the entrypoint script
+COPY config.php .
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 COPY apache/observium.conf /etc/apache2/sites-available/observium.conf
 
-# cron + web
-COPY init.sh /opt/observium/init.sh
-RUN chmod +x /opt/observium/init.sh
-
-RUN a2enmod rewrite
-
+# Expose the Apache web server port
 EXPOSE 80
-EXPOSE 8668
 
-CMD ["/opt/observium/init.sh"]
+# Set the entrypoint to run when the container starts
+ENTRYPOINT ["/entrypoint.sh"]
 # CMD ["apache2ctl", "-D", "FOREGROUND"]

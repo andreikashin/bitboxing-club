@@ -14,7 +14,7 @@ services:
       - "8080:8080"
     volumes:
       - ./configuration:/etc/netbox/config:ro
-      - netbox_media:/opt/netbox/netbox/media
+      - ./volumes/netbox_media:/opt/netbox/netbox/media
     restart: unless-stopped
 
   postgres:
@@ -25,7 +25,7 @@ services:
       POSTGRES_PASSWORD: netbox
       POSTGRES_DB: netbox
     volumes:
-      - netbox_postgres_data:/var/lib/postgresql/data
+      - ./volumes/netbox_postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
@@ -50,9 +50,10 @@ services:
       OBS_DB_PASS: observium
       TZ: Europe/Tallinn
     volumes:
-      - observium_data:/opt/observium
+      - ./volumes/observium_data/rrd:/opt/observium/rrd
+      - ./volumes/observium_data/logs:/opt/observium/logs
     ports:
-      - "8668:8668"
+      - "8668:80"
     restart: unless-stopped
 
   observium-mysql:
@@ -64,10 +65,11 @@ services:
       MYSQL_USER: observium
       MYSQL_PASSWORD: observium
     volumes:
-      - observium_mysql_data:/var/lib/mysql
+      - ./volumes/observium_mysql_data:/var/lib/mysql
     restart: unless-stopped
 
   backend:
+    container_name: backend
     build: ./backend
     environment:
       - NETBOX_URL=http://netbox:8080
@@ -78,6 +80,7 @@ services:
       - netbox
 
   frontend:
+    container_name: frontend
     build: ./frontend
     ports:
       - "3000:80"

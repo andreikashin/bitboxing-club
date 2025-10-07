@@ -10,4 +10,24 @@ $config['rrdtool'] = "/usr/bin/rrdtool";
 $config['rrd_dir'] = "/opt/observium/rrd";
 $config['log_dir'] = "/opt/observium/logs";
 $config['snmp']['community'] = array('public');
+
+// --- NetBox Integration ---
+$config['netbox']['api']['url'] = 'http://netbox/';
+$config['netbox']['api']['token'] = '1234567890123456789012345678901234567890';
+
+// Optional: If your NetBox uses a self-signed SSL certificate
+// $config['netbox']['api']['ssl_verify'] = FALSE;
+
+// Tell Observium to use NetBox for auto-discovery
+$config['autodiscovery']['netbox'] = TRUE;
+
+// Optional: Map NetBox device roles to Observium device types (case-sensitive)
+// This helps Observium categorize devices correctly.
+$config['netbox']['role_map'] = array(
+  'Core Switch'    => 'core',
+  'Access Switch'  => 'switch',
+  'Firewall'       => 'firewall',
+  'Router'         => 'router',
+  'Server'         => 'server',
+);
 ?>
