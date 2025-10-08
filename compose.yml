@@ -15,6 +15,7 @@ services:
     volumes:
       - ./configuration:/etc/netbox/config:ro
       - ./volumes/netbox_media:/opt/netbox/netbox/media
+      - ./initializers:/opt/netbox/initializers
     restart: unless-stopped
 
   postgres:
@@ -71,9 +72,10 @@ services:
   backend:
     container_name: backend
     build: ./backend
+    env_file:
+      - ./configuration/.env-template
     environment:
       - NETBOX_URL=http://netbox:8080
-      - NETBOX_TOKEN=changeme
     ports:
       - "8000:8000"
     depends_on:
